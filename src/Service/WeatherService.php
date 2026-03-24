@@ -26,29 +26,41 @@ class WeatherService
         $cacheKey = 'weather_' . md5(mb_strtolower($city));
 
         return $this->cache->get($cacheKey, function (ItemInterface $item) use ($city) {
-            // Cache 1 heure
+
+            // ⏱️ Cache pendant 1 heure
             $item->expiresAfter(3600);
 
-            $response = $this->httpClient->request('GET', 'https://api.openweathermap.org/data/2.5/weather', [
-                'query' => [
-                    'q' => $city,
-                    'appid' => $this->openWeatherApiKey,
-                    'units' => 'metric',
-                    'lang' => 'fr',
-                ],
-            ]);
+            $response = $this->httpClient->request(
+                'GET',
+                'https://api.openweathermap.org/data/2.5/weather',
+                [
+                    'query' => [
+                        'q' => $city,
+                        'appid' => $this->openWeatherApiKey,
+                        'units' => 'metric',
+                        'lang' => 'fr',
+                    ],
+                ]
+            );
 
             $statusCode = $response->getStatusCode();
 
+            // ❌ Ville inexistante
             if ($statusCode === 404) {
                 throw new \RuntimeException('Ville non trouvée.');
             }
 
+            // ❌ Autres erreurs API (clé invalide, quota, etc.)
             if ($statusCode >= 400) {
-                throw new \RuntimeException('Erreur lors de la récupération de la météo.');
+                $errorContent = $response->getContent(false);
+
+                throw new \RuntimeException(
+                    'Erreur OpenWeather (' . $statusCode . ') : ' . $errorContent
+                );
             }
 
-            $data = $response->toArray();
+            // ✅ Récupération des données
+            $data = $response->toArray(false);
 
             return [
                 'city' => $data['name'] ?? $city,

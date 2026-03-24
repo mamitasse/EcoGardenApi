@@ -10,23 +10,25 @@ use Symfony\Component\Routing\Annotation\Route;
 
 final class WeatherController extends AbstractController
 {
-    #[Route('/api/meteo/{ville}', name: 'api_meteo_by_city', methods: ['GET'])]
-    public function byCity(string $ville, WeatherService $weatherService): JsonResponse
-    {
-        try {
-            $weather = $weatherService->getWeatherByCity($ville);
+   #[Route('/api/meteo/{ville}', name: 'api_meteo_by_city', methods: ['GET'])]
+public function byCity(string $ville, WeatherService $weatherService): JsonResponse
+{
+    try {
+        $weather = $weatherService->getWeatherByCity($ville);
 
-            return $this->json($weather);
-        } catch (\RuntimeException $e) {
-            return $this->json([
-                'error' => $e->getMessage()
-            ], 404);
-        } catch (\Throwable $e) {
-            return $this->json([
-                'error' => 'Erreur serveur.'
-            ], 500);
-        }
+        return $this->json($weather);
+    } catch (\RuntimeException $e) {
+        $status = str_contains($e->getMessage(), 'Ville non trouvée') ? 404 : 500;
+
+        return $this->json([
+            'error' => $e->getMessage()
+        ], $status);
+    } catch (\Throwable $e) {
+        return $this->json([
+            'error' => 'Erreur serveur.'
+        ], 500);
     }
+}
 
     #[Route('/api/meteo', name: 'api_meteo_current_user_city', methods: ['GET'])]
     public function currentUserCity(
